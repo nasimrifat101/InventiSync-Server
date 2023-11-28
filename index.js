@@ -156,56 +156,59 @@ async function run() {
       res.send(result);
     });
 
-   // Endpoint to create a new shop
-app.post("/shop", verifyToken, async (req, res) => {
-  const shop = req.body;
-  const query = { OwnerEmail: shop.OwnerEmail };
+    // Endpoint to create a new shop
+    app.post("/shop", async (req, res) => {
+      const shop = req.body;
+      const query = { OwnerEmail: shop.OwnerEmail };
+      console.log(query);
 
-  // Check if the user already has a shop
-  const existingShop = await shopCollection.findOne(query);
+      // Check if the user already has a shop
+      const existingShop = await shopCollection.findOne(query);
 
-  if (existingShop) {
-    return res
-      .status(409)
-      .json({ message: "User already has a shop", insertedId: null });
-  }
+      if (existingShop) {
+        return res
+          .status(409)
+          .json({ message: "User already has a shop", insertedId: null });
+      }
 
-  try {
-    const defaultProductLimit = 3;
-    const shopWithDefaultLimit = {
-      ...shop,
-      productLimit: shop.productLimit || defaultProductLimit,
-    };
+      try {
+        const defaultProductLimit = 3;
+        const shopWithDefaultLimit = {
+          ...shop,
+          productLimit: shop.productLimit || defaultProductLimit,
+        };
 
-    const shopResult = await shopCollection.insertOne(shopWithDefaultLimit);
-    const insertedId = shopResult.insertedId;
+        const shopResult = await shopCollection.insertOne(shopWithDefaultLimit);
+        const insertedId = shopResult.insertedId;
 
-    const userQuery = { email: shop.OwnerEmail };
-    const userUpdate = {
-      $set: {
-        shopId: insertedId,
-        shopName: shop.name,
-        shopLogo: shop.logo,
-        role: "manager",
-      },
-    };
+        const userQuery = { email: shop.OwnerEmail };
+        const userUpdate = {
+          $set: {
+            shopId: insertedId,
+            shopName: shop.name,
+            shopLogo: shop.logo,
+            role: "manager",
+          },
+        };
+        console.log(userQuery);
+        const userResult = await userCollection.updateOne(
+          userQuery,
+          userUpdate
+        );
+        console.log(userResult);
+        if (userResult.matchedCount === 0) {
+          return res
+            .status(404)
+            .json({ message: "User not found", insertedId: null });
+        }
 
-    const userResult = await userCollection.updateOne(userQuery, userUpdate);
-
-    if (userResult.matchedCount === 0) {
-      return res
-        .status(404)
-        .json({ message: "User not found", insertedId: null });
-    }
-
-    res.json({ message: "Shop created successfully", insertedId });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Internal server error", insertedId: null });
-  }
-});
-
+        res.json({ message: "Shop created successfully", insertedId });
+      } catch (error) {
+        res
+          .status(500)
+          .json({ message: "Internal server error", insertedId: null });
+      }
+    });
 
     // Endpoint to get shops by email
     app.get("/shops/:email?", verifyToken, async (req, res) => {
@@ -221,13 +224,13 @@ app.post("/shop", verifyToken, async (req, res) => {
     });
 
     // Endpoint to get all products
-    app.get("/products",verifyToken,verifyAdmin, async (req, res) => {
+    app.get("/products", verifyToken, verifyAdmin, async (req, res) => {
       const result = await productCollection.find().toArray();
       res.send(result);
     });
 
     // Endpoint to get a Single Product
-    app.get("/products/single/:id",verifyToken, async (req, res) => {
+    app.get("/products/single/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
 
       const query = { _id: new ObjectId(id) };
@@ -256,31 +259,36 @@ app.post("/shop", verifyToken, async (req, res) => {
     });
 
     // Endpoint to update a single product
-    app.put("/product/single/update/:id",verifyToken,verifyManager, async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const options = { upsert: true };
-      const updateProduct = req.body;
-      const product = {
-        $set: {
-          name: updateProduct.name,
-          logo: updateProduct.logo,
-          location: updateProduct.location,
-          info: updateProduct.info,
-          profit: updateProduct.profit,
-          cost: updateProduct.cost,
-          discount: updateProduct.discount,
-          quantity: updateProduct.quantity,
-          sellingPrice: updateProduct.sellingPrice,
-        },
-      };
-      const result = await productCollection.updateOne(
-        filter,
-        product,
-        options
-      );
-      res.send(result);
-    });
+    app.put(
+      "/product/single/update/:id",
+      verifyToken,
+      verifyManager,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const options = { upsert: true };
+        const updateProduct = req.body;
+        const product = {
+          $set: {
+            name: updateProduct.name,
+            logo: updateProduct.logo,
+            location: updateProduct.location,
+            info: updateProduct.info,
+            profit: updateProduct.profit,
+            cost: updateProduct.cost,
+            discount: updateProduct.discount,
+            quantity: updateProduct.quantity,
+            sellingPrice: updateProduct.sellingPrice,
+          },
+        };
+        const result = await productCollection.updateOne(
+          filter,
+          product,
+          options
+        );
+        res.send(result);
+      }
+    );
 
     // Endpoint to check if a user can add a product
     app.get("/users/can-add-product/:email", verifyToken, async (req, res) => {
@@ -320,12 +328,17 @@ app.post("/shop", verifyToken, async (req, res) => {
     });
 
     // Endpoint to delete a product from product collection
-    app.delete("/products/delete/:id",verifyToken, verifyManager, async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await productCollection.deleteOne(query);
-      res.send(result);
-    });
+    app.delete(
+      "/products/delete/:id",
+      verifyToken,
+      verifyManager,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await productCollection.deleteOne(query);
+        res.send(result);
+      }
+    );
 
     // Endpoint to get cart data of specific user
     app.get("/cart/specific/email", verifyToken, async (req, res) => {
@@ -433,63 +446,68 @@ app.post("/shop", verifyToken, async (req, res) => {
     });
 
     // endpoint for sales summary page
-    app.get("/sales-summary/:email",verifyToken,verifyManager,  async (req, res) => {
-      try {
-        const userEmail = req.params.email;
+    app.get(
+      "/sales-summary/:email",
+      verifyToken,
+      verifyManager,
+      async (req, res) => {
+        try {
+          const userEmail = req.params.email;
 
-        const soldProduct = await salesCollection.countDocuments({
-          OwnerEmail: userEmail,
-        });
-
-        const totalSale = await salesCollection
-          .find({ OwnerEmail: userEmail })
-          .project({ _id: 0, sellingPrice: 1 })
-          .toArray()
-          .then((docs) =>
-            docs.reduce((acc, curr) => acc + curr.sellingPrice, 0)
-          )
-          .catch((error) => {
-            console.error(error);
-            return 0;
+          const soldProduct = await salesCollection.countDocuments({
+            OwnerEmail: userEmail,
           });
 
-        const totalInvest = await salesCollection
-          .find({ OwnerEmail: userEmail })
-          .project({ _id: 0, cost: 1 })
-          .toArray()
-          .then((docs) => docs.reduce((acc, curr) => acc + curr.cost, 0))
-          .catch((error) => {
-            console.error(error);
-            return 0;
+          const totalSale = await salesCollection
+            .find({ OwnerEmail: userEmail })
+            .project({ _id: 0, sellingPrice: 1 })
+            .toArray()
+            .then((docs) =>
+              docs.reduce((acc, curr) => acc + curr.sellingPrice, 0)
+            )
+            .catch((error) => {
+              console.error(error);
+              return 0;
+            });
+
+          const totalInvest = await salesCollection
+            .find({ OwnerEmail: userEmail })
+            .project({ _id: 0, cost: 1 })
+            .toArray()
+            .then((docs) => docs.reduce((acc, curr) => acc + curr.cost, 0))
+            .catch((error) => {
+              console.error(error);
+              return 0;
+            });
+
+          const totalProfit = await salesCollection
+            .find({ OwnerEmail: userEmail })
+            .project({ _id: 0, profit: 1 })
+            .toArray()
+            .then((docs) => docs.reduce((acc, curr) => acc + curr.profit, 0))
+            .catch((error) => {
+              console.error(error);
+              return 0;
+            });
+
+          const salesHistory = await salesCollection
+            .find({ OwnerEmail: userEmail })
+            .sort({ dateStr: -1 })
+            .toArray();
+
+          res.json({
+            soldProduct,
+            totalSale,
+            totalInvest,
+            totalProfit,
+            salesHistory,
           });
-
-        const totalProfit = await salesCollection
-          .find({ OwnerEmail: userEmail })
-          .project({ _id: 0, profit: 1 })
-          .toArray()
-          .then((docs) => docs.reduce((acc, curr) => acc + curr.profit, 0))
-          .catch((error) => {
-            console.error(error);
-            return 0;
-          });
-
-        const salesHistory = await salesCollection
-          .find({ OwnerEmail: userEmail })
-          .sort({ dateStr: -1 })
-          .toArray();
-
-        res.json({
-          soldProduct,
-          totalSale,
-          totalInvest,
-          totalProfit,
-          salesHistory,
-        });
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Internal Server Error" });
+        } catch (error) {
+          console.error(error);
+          res.status(500).json({ error: "Internal Server Error" });
+        }
       }
-    });
+    );
 
     // endpoint to get data from subs indivitual
     app.get("/subscription/:email", async (req, res) => {
@@ -507,7 +525,7 @@ app.post("/shop", verifyToken, async (req, res) => {
     });
 
     // endpoint to delete data from subs individual
-    app.delete("/subscription/delete/:email",verifyToken, async (req, res) => {
+    app.delete("/subscription/delete/:email", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { client: email };
       const result = await subsCollection.deleteOne(query);
