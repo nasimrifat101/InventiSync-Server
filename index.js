@@ -26,8 +26,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-
+  
     // Collection instances
     const userCollection = client.db("InventiSync").collection("users");
     const shopCollection = client.db("InventiSync").collection("shops");
@@ -90,6 +89,7 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
+
 
     // Endpoint to check if user is admin or manager
     app.get("/users/admin-manager/:email", verifyToken, async (req, res) => {
@@ -605,7 +605,7 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
