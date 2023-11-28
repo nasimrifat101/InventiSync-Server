@@ -156,56 +156,56 @@ async function run() {
       res.send(result);
     });
 
-    // Endpoint to create a new shop
-    app.post("/shop",verifyToken, async (req, res) => {
-      const shop = req.body;
-      const query = { name: shop.name };
-      const existingShop = await shopCollection.findOne(query);
+   // Endpoint to create a new shop
+app.post("/shop", verifyToken, async (req, res) => {
+  const shop = req.body;
+  const query = { OwnerEmail: shop.OwnerEmail };
 
-      if (existingShop) {
-        return res
-          .status(409)
-          .json({ message: "Shop already exists", insertedId: null });
-      }
+  // Check if the user already has a shop
+  const existingShop = await shopCollection.findOne(query);
 
-      try {
-        const defaultProductLimit = 3;
-        const shopWithDefaultLimit = {
-          ...shop,
-          productLimit: shop.productLimit || defaultProductLimit,
-        };
+  if (existingShop) {
+    return res
+      .status(409)
+      .json({ message: "User already has a shop", insertedId: null });
+  }
 
-        const shopResult = await shopCollection.insertOne(shopWithDefaultLimit);
-        const insertedId = shopResult.insertedId;
+  try {
+    const defaultProductLimit = 3;
+    const shopWithDefaultLimit = {
+      ...shop,
+      productLimit: shop.productLimit || defaultProductLimit,
+    };
 
-        const userQuery = { email: shop.OwnerEmail };
-        const userUpdate = {
-          $set: {
-            shopId: insertedId,
-            shopName: shop.name,
-            shopLogo: shop.logo,
-            role: "manager",
-          },
-        };
+    const shopResult = await shopCollection.insertOne(shopWithDefaultLimit);
+    const insertedId = shopResult.insertedId;
 
-        const userResult = await userCollection.updateOne(
-          userQuery,
-          userUpdate
-        );
+    const userQuery = { email: shop.OwnerEmail };
+    const userUpdate = {
+      $set: {
+        shopId: insertedId,
+        shopName: shop.name,
+        shopLogo: shop.logo,
+        role: "manager",
+      },
+    };
 
-        if (userResult.matchedCount === 0) {
-          return res
-            .status(404)
-            .json({ message: "User not found", insertedId: null });
-        }
+    const userResult = await userCollection.updateOne(userQuery, userUpdate);
 
-        res.json({ message: "Shop created successfully", insertedId });
-      } catch (error) {
-        res
-          .status(500)
-          .json({ message: "Internal server error", insertedId: null });
-      }
-    });
+    if (userResult.matchedCount === 0) {
+      return res
+        .status(404)
+        .json({ message: "User not found", insertedId: null });
+    }
+
+    res.json({ message: "Shop created successfully", insertedId });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Internal server error", insertedId: null });
+  }
+});
+
 
     // Endpoint to get shops by email
     app.get("/shops/:email?", verifyToken, async (req, res) => {
